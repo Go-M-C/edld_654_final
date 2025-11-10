@@ -16,3 +16,14 @@ knitr::opts_chunk$set(echo = TRUE)
 -   **Data visualization (5pts)**: Include at least two plots (or more) to help communicate your findings. The plots may be of initial data explorations, fits of individual models, and plots displaying the performance of competing models.
 -   **Discussion/Conclusion (25pts)**: Discuss and summarize what you learned. Which variables were the most important in predicting your outcome? Was this expected or surprising? Were different models close in performance, or were there significant gaps in performance from different modeling approaches? Are there practical/applied findings that could help the field of your interest based on your work? If yes, what are they?
 -   **Reproducibility (10pts)**: Provide a link to the GitHub repo at the beginning of your report as a note.
+
+```{r}
+require(here)
+require(recipes)
+```
+
+```{r}
+load(here("data","BTGUSAI3.Rdata"))
+teacher <- BTGUSAI3
+```
+
