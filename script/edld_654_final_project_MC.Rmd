@@ -52,3 +52,13 @@ vars_to_remove
 teacher_clean <- teacher[, !names(teacher) %in% vars_to_remove]
 ```
 
+```{r}
+# Checking outcome variable IT3G17J: proportion of lessons in your
+# reference class do students do Write computer programs,games, or apps
+# (e.g., using [Python, LUA,Javascript,Scratch])
+
+# table(teacher_clean$IT3G17J)
+
+
+```
+
