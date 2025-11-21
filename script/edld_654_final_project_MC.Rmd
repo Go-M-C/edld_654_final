@@ -42,11 +42,13 @@ require(recipes)
 ```{r}
 load(here("data","BTGUSAI3.Rdata"))
 teacher <- BTGUSAI3
-
+names(teacher)
 ```
 
-
 ```{r}
-
+vars_to_remove <- grep("(^TRWGT)|(^WGT)|(^JKZONET)|(^JKREPT)|(^SENWGTT)|(^VERSION)|(^HOUWGTT)|(^TOTWGTT)",
+                       names(teacher), value = TRUE)
+vars_to_remove
+teacher_clean <- teacher[, !names(teacher) %in% vars_to_remove]
 ```
 
