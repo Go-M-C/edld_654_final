@@ -37,6 +37,7 @@ The ICILS is designed to measure 8th-grade students' capabilities to use Compute
 ```{r}
 require(here)
 require(recipes)
+require(ggplot2)
 ```
 
 ```{r}
@@ -57,8 +58,38 @@ teacher_clean <- teacher[, !names(teacher) %in% vars_to_remove]
 # reference class do students do Write computer programs,games, or apps
 # (e.g., using [Python, LUA,Javascript,Scratch])
 
-# table(teacher_clean$IT3G17J)
+attributes((teacher$IT3G17J)$labels)
+# Convert to factor
+require(haven)
+teacher_clean$IT3G17J_f <- haven::as_factor(teacher_clean$IT3G17J)
 
+# Remove label and the missing value
+teacher_clean$IT3G17J_num <- as.numeric(teacher_clean$IT3G17J)
+teacher_clean$IT3G17J_num[teacher_clean$IT3G17J_num %in% c(8,9)] <- NA
+
+teacher_clean$IT3G17J_ord <- factor(
+  teacher_clean$IT3G17J_num,
+  levels = 1:5,
+  labels = c("Never",
+             "One quarter or less",
+             "One half or less",
+             "More than one quarter",
+             "Three quarters or more"),
+  ordered = TRUE
+)
+
+# Distribution of the outcome variable
+
+table(teacher_clean$IT3G17J_ord, useNA = "ifany")
+
+# Visualize the distribution
+
+ggplot(teacher_clean, aes(IT3G17J_ord)) +
+  geom_bar()+
+  theme_minimal()+
+  labs(title = "Distribution of Programming Assignment Frequency",
+       x = "Write computer programs, games, or apps")+
+  coord_flip()
 
 ```
 
