@@ -35,6 +35,7 @@ require(recipes)
 require(ggplot2)
 require(labelled)
 require(stringr)
+require(haven) #zap_labels function
 ```
 
 ```{r}
@@ -52,9 +53,11 @@ teacher_clean <- teacher[, !names(teacher) %in% vars_to_remove]
 ```
 
 ```{r}
-teacher_clean <- teacher_clean %>% 
-  zap_labels() %>% #remove SPSS labels without change numeric
-  zap_label() # remove label
+#remove SPSS labels without change numeric and label
+teacher_clean <- 
+  teacher_clean %>% 
+  zap_labels() %>% 
+  zap_label()
 ```
 
 ```{r}
@@ -71,7 +74,7 @@ teacher_clean$IT3G17J_f <- factor(
   )
 )
 
-ggplot(teacher_clean, aes(factor(IT3G17J_f), fill = factor(IT3G17J_f))) +
+ggplot(teacher_clean, aes(IT3G17J_f, fill = IT3G17J_f)) +
   geom_bar() +
   geom_text(stat = "count",
             aes(label = after_stat(count)),
@@ -92,12 +95,35 @@ teacher_clean <- teacher_clean %>%
   mutate(
     assign_pro_bi = ifelse(IT3G17J == 1,1,0)
   ) %>% 
-  select(-IT3G17J,-IT3G17J_f)
+  select(-IT3G17J,-IT3G17J_f,-IDCNTRY,-CNTRY)
 ```
 
 
 ```{r}
 # Initial data preparation
+require(finalfit)
+ff_glimpse(teacher_clean)
 
+require(dplyr)
+
+categorical_vars <- teacher_clean %>% 
+  summarise(across(everything(), ~n_distinct(.x, na.rm = TRUE))) %>% 
+  pivot_longer(everything(), names_to = "variable", values_to = "unique_n") %>% 
+  filter(unique_n <= 10 | 
+           sapply(teacher_clean, is.character)[match(variable, names(teacher_clean))]) %>% 
+  pull(variable)
+
+categorical_vars
+
+continuous_vars <- setdiff(names(teacher_clean), categorical_vars)
+
+continuous_vars
+
+
+```
+
+```{r}
+teacher_clean <- teacher_clean %>% 
+  mutate(across(all_of(categorical_vars), as.factor))
 ```
 
