@@ -9,30 +9,24 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
--   **Research problem (10pts)**: Describe the task you want to achieve. What is the outcome of interest? What are you trying to predict? Why is it important? What are the potential benefits of having a predictive model for this outcome? 
-
-
-
-
-
+-   **Research problem (10pts)**: Describe the task you want to achieve. What is the outcome of interest? What are you trying to predict? Why is it important? What are the potential benefits of having a predictive model for this outcome?
 
 -   **Description of the data (15pts)**: Describe core features of the data, any additional features you produced from existing features and how, basic descriptive statistics about these features, and any missing data analysis you conduct. The description should be sufficiently clear that the instructor understands all the variables included in your modeling.
 
-The main objective of this task is to explore several supervised learning models for predicting the outcome of interest. The Dataset I used is the US teacher questionnaire survey data provided in the International Computer and Information Literacy Study(ICILS) 2023. 
+The main objective of this task is to explore several supervised learning models for predicting the outcome of interest. The Dataset I used is the US teacher questionnaire survey data provided in the International Computer and Information Literacy Study(ICILS) 2023.
 
 Which teacher-level factors predict how frequently teachers have 8-th grade students write computer programs, games, or apps during classroom instruction?
 
 The ICILS is designed to measure 8th-grade students' capabilities to use Computer Information Literacy(CIL) and Computational Thinking(CT). Along with 35 education systems, United States participated CIL assessment and CT assessment with 24 education systems. The study survey included context questionnaire for school principles & coordinators, teachers, and 8th-grade students. It is to my interest that, the study didn't include the U.S. teacher data in the international average or presented in the main ICILS 2023 international report because the response rate for sampled teachers in the United States was below 50 percent. The correlated factors could be varied. Thus, I plan to use this dataset to explore more about teachers' usage of ICT in the U.S.
 
-
 -   **Description of the models (15pts)**: Apply at least three different modeling approaches to predict the outcome in the dataset. Describe any specific setting used during the model fitting (e.g., hyperparameter tuning, cross-validation). Also, discuss how you plan to evaluate model performance.
 -   **Model fit (20pts)**: Provide the results of your model evaluation. Compare and contrasts results from different modeling approaches, including a discussion of model performance. Discuss your final model selection and the evidence that led you to this selection. If it is a classification problem, how did you choose a cut-off point for binary predictions? Did you consider different cut-off points?
 -   **Data visualization (5pts)**: Include at least two plots (or more) to help communicate your findings. The plots may be of initial data explorations, fits of individual models, and plots displaying the performance of competing models.
 -   **Discussion/Conclusion (25pts)**: Discuss and summarize what you learned. Which variables were the most important in predicting your outcome? Was this expected or surprising? Were different models close in performance, or were there significant gaps in performance from different modeling approaches? Are there practical/applied findings that could help the field of your interest based on your work? If yes, what are they?
+
+
+
 -   **Reproducibility (10pts)**: Provide a link to the GitHub repo at the beginning of your report as a note.
-
-
-
 
 ```{r}
 require(here)
@@ -85,7 +79,7 @@ table(teacher_clean$IT3G17J_ord, useNA = "ifany")
 # Visualize the distribution
 
 ggplot(teacher_clean, aes(IT3G17J_ord)) +
-  geom_bar()+
+  geom_bar(fill = "lightblue")+
   theme_minimal()+
   labs(title = "Distribution of Programming Assignment Frequency",
        x = "Write computer programs, games, or apps")+
@@ -93,3 +87,8 @@ ggplot(teacher_clean, aes(IT3G17J_ord)) +
 
 ```
 
+-   I collapsed the outcome variable into a binary indicator that reflecting whether the teacher ever engages students in computer programming activities. The original outcome is highly skewed toward "Never", and the categories above "Never" are sparse. It would be risky for me to use ordinal modeling. 
+
+```{r}
+
+```
