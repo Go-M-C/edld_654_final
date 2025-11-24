@@ -127,3 +127,29 @@ teacher_clean <- teacher_clean %>%
   mutate(across(all_of(categorical_vars), as.factor))
 ```
 
+Missing summary table
+
+```{r}
+missing_ <- ff_glimpse(teacher_clean)$Continuous
+head(arrange(missing_, desc(missing_percent)))
+
+```
+
+Group variables into different types
+
+```{r}
+teacher_clean$assign_pro_bi <- factor(teacher_clean$assign_pro_bi) 
+teacher_clean <- teacher_clean %>% 
+  mutate(across(all_of(categorical_vars), as.factor))
+
+outcome <- c('assign_pro_bi')
+
+id      <- c('IDSCHOOL',"IDTEACH")
+
+catergorical <- setdiff(categorical_vars, outcome)
+
+continuous <- setdiff(continuous_vars,id)
+
+
+```
+
