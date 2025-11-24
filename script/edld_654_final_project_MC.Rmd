@@ -20,11 +20,12 @@ Which teacher-level factors predict how frequently teachers have 8-th grade stud
 The ICILS is designed to measure 8th-grade students' capabilities to use Computer Information Literacy(CIL) and Computational Thinking(CT). Along with 35 education systems, United States participated CIL assessment and CT assessment with 24 education systems. The study survey included context questionnaire for school principles & coordinators, teachers, and 8th-grade students. It is to my interest that, the study didn't include the U.S. teacher data in the international average or presented in the main ICILS 2023 international report because the response rate for sampled teachers in the United States was below 50 percent. The correlated factors could be varied. Thus, I plan to use this dataset to explore more about teachers' usage of ICT in the U.S.
 
 -   **Description of the models (15pts)**: Apply at least three different modeling approaches to predict the outcome in the dataset. Describe any specific setting used during the model fitting (e.g., hyperparameter tuning, cross-validation). Also, discuss how you plan to evaluate model performance.
+
 -   **Model fit (20pts)**: Provide the results of your model evaluation. Compare and contrasts results from different modeling approaches, including a discussion of model performance. Discuss your final model selection and the evidence that led you to this selection. If it is a classification problem, how did you choose a cut-off point for binary predictions? Did you consider different cut-off points?
+
 -   **Data visualization (5pts)**: Include at least two plots (or more) to help communicate your findings. The plots may be of initial data explorations, fits of individual models, and plots displaying the performance of competing models.
+
 -   **Discussion/Conclusion (25pts)**: Discuss and summarize what you learned. Which variables were the most important in predicting your outcome? Was this expected or surprising? Were different models close in performance, or were there significant gaps in performance from different modeling approaches? Are there practical/applied findings that could help the field of your interest based on your work? If yes, what are they?
-
-
 
 -   **Reproducibility (10pts)**: Provide a link to the GitHub repo at the beginning of your report as a note.
 
@@ -86,18 +87,15 @@ ggplot(teacher_clean, aes(IT3G17J_f, fill = IT3G17J_f)) +
        y = "Count")
 ```
 
-
--   I collapsed the outcome variable into a binary indicator that reflecting whether the teacher ever engages students in computer programming activities. The original outcome is highly skewed toward "Never", and the categories above "Never" are sparse. It would be risky for me to use ordinal modeling.
-1: Never; 2: One quarter or less (but more than never); 3: One half or less (but more than one quarter); 4: More than one-half (but less than three quarters); 5: Three quarters or more
+-   I collapsed the outcome variable into a binary indicator that reflecting whether the teacher ever engages students in computer programming activities. The original outcome is highly skewed toward "Never", and the categories above "Never" are sparse. It would be risky for me to use ordinal modeling. 1: Never; 2: One quarter or less (but more than never); 3: One half or less (but more than one quarter); 4: More than one-half (but less than three quarters); 5: Three quarters or more
 
 ```{r}
 teacher_clean <- teacher_clean %>% 
   mutate(
     assign_pro_bi = ifelse(IT3G17J == 1,1,0)
   ) %>% 
-  select(-IT3G17J,-IT3G17J_f,-IDCNTRY,-CNTRY)
+  select(-IT3G17J,-IT3G17J_f,-IDCNTRY,-CNTRY, -IEADATE)
 ```
-
 
 ```{r}
 # Initial data preparation
@@ -115,10 +113,15 @@ categorical_vars <- teacher_clean %>%
 
 categorical_vars
 
+
+# Move IDSCHOOL to categorical_var
+teacher_clean$IDSCHOOL <- as.factor(teacher_clean$IDSCHOOL)
+categorical_vars <- c(categorical_vars, "IDSCHOOL") %>% 
+  unique()
+
 continuous_vars <- setdiff(names(teacher_clean), categorical_vars)
 
 continuous_vars
-
 
 ```
 
@@ -144,7 +147,7 @@ teacher_clean <- teacher_clean %>%
 
 outcome <- c('assign_pro_bi')
 
-id      <- c('IDSCHOOL',"IDTEACH")
+id      <- c("IDTEACH")
 
 catergorical <- setdiff(categorical_vars, outcome)
 
@@ -152,4 +155,51 @@ continuous <- setdiff(continuous_vars,id)
 
 
 ```
+
+Build blueprint recipes to prepare data: I implemented the following steps:
+
+-   Create an indicator variable of missingness for all predictors
+
+```{r}
+
+require(recipes)
+options(warn=-1)
+
+blueprint <- recipe(x     = teacher_clean,
+                    vars  = c(catergorical,continuous,outcome,id),
+                    roles = c(rep('predictor',204),'outome','IDTEACH')) %>% 
+  
+  # For all 204 predictors, create an indicator variable for missingness
+  
+  step_indicate_na(all_of(categorical), all_of(continuous)) %>% 
+  
+  # Remove the variable with zero variance, this will also remove 
+  # The missingness variables
+  
+  step_zv(all_numeric()) %>% 
+  
+  # impute the missing values using mean and mode
+  
+  step_impute_mean(all_of(continuous)) %>% 
+  step_impute_mode(all_of(catergorical)) %>% 
+  
+  # 2nd degree polynomial terms for continuous variables
+  
+  step_poly(all_of(numeric),degree = 2) %>% 
+  
+  # Standardize the polynomial terms of continuous variables
+  
+  step_normalize(paste0(continuous, '_poly_1'),
+                 paste0(continuous, '_poly_2')) %>% 
+  
+  # One-hot encoding for all categorical variables
+  
+  step_dummy(all_of(catergorical), one_hot = TRUE) %>% 
+  step_num2factor(assign_pro_bi,
+                  transform = function(x)x + 1,
+                  levels = c("Any use","Never"))
+
+blueprint
+```
+
 
