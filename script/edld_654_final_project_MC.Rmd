@@ -158,7 +158,21 @@ continuous <- setdiff(continuous_vars,id)
 
 Build blueprint recipes to prepare data: I implemented the following steps:
 
--   Create an indicator variable of missingness for all predictors
+-   Creating missing data variable indicators for: all_of(categorical) all_of(continuous)
+
+-   Zero variance filter on: all_numeric()
+
+-   Mean imputation for: all_of(continuous)
+
+-   Mode imputation for: all_of(catergorical)
+
+-   Polynomial expansion on: all_of(numeric)
+
+-   Centering and scaling for: paste0(continuous, "\_poly_1") paste0(continuous, "\_poly_2")
+
+-   Dummy variables from: all_of(catergorical)
+
+-   Factor variables from: assign_pro_bi
 
 ```{r}
 
@@ -167,7 +181,7 @@ options(warn=-1)
 
 blueprint <- recipe(x     = teacher_clean,
                     vars  = c(catergorical,continuous,outcome,id),
-                    roles = c(rep('predictor',204),'outome','IDTEACH')) %>% 
+                    roles = c(rep('predictor',204),'outome','ID')) %>% 
   
   # For all 204 predictors, create an indicator variable for missingness
   
@@ -201,5 +215,3 @@ blueprint <- recipe(x     = teacher_clean,
 
 blueprint
 ```
-
-
