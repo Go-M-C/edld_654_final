@@ -38,7 +38,7 @@ require(labelled)
 require(stringr)
 require(haven) #zap_labels function
 ```
-
+## 1.1 Initial Data Preparation
 ```{r}
 load(here("data","BTGUSAI3.Rdata"))
 teacher <- BTGUSAI3
@@ -153,7 +153,6 @@ catergorical <- setdiff(categorical_vars, outcome)
 
 continuous <- setdiff(continuous_vars,id)
 
-
 ```
 
 Build blueprint recipes to prepare data: I implemented the following steps:
@@ -215,3 +214,19 @@ blueprint <- recipe(x     = teacher_clean,
 
 blueprint
 ```
+
+**Building a Classification Model with Ridge Penalty**
+1.2. Train/Test split
+
+```{r}
+require(caret)
+
+loc <- sample(1:nrow(teacher_clean), round(nrow(teacher_clean)*0.8))
+
+teacher_tr <- teacher_clean[loc, ]
+teacher_te <- teacher_clean[-loc, ]
+
+dim(teacher_tr)
+dim(teacher_te)
+```
+
