@@ -221,11 +221,15 @@ blueprint <- recipe(assign_pro_bi ~ ., data =  teacher_clean) %>%
 blueprint
 ```
 
-**Building a Classification Model with Ridge Penalty**
+**Building a Logistic Regression Model**
+
 1.2. Train/Test split
 
 ```{r}
 require(caret)
+
+teacher_clean <- teacher_clean %>% 
+  filter(!is.na(assign_pro_bi))
 
 loc <- sample(1:nrow(teacher_clean), round(nrow(teacher_clean)*0.8))
 
@@ -260,7 +264,8 @@ cv <- trainControl(
   method    = "cv",
   index     = my.indices,
   classProbs = TRUE,
-  summaryFunction = mnLogLoss
+  summaryFunction = mnLogLoss,
+  savePredictions = "final" # confirm positive class
 )
 ```
 
@@ -294,7 +299,6 @@ head(predicted_te)
 ```
 
 
-
 ```{r}
 group_0 <- which(teacher_te$assign_pro_bi=="AnyUse")
 group_1 <- which(teacher_te$assign_pro_bi=="Never")
@@ -310,9 +314,64 @@ legend("topright", c("AnyUse","Never"), col = c("lightblue","orange"), lty=c(1,2
 ```
 
 ```{r}
-# require(cutpointr)
-# cut.obj <- cutpointr(x = predicted_te$AnyUse,
-#                      class = teacher_te$assign_pro_bi)
-# auc(cut.obj)
+# library(pROC)
+# roc_obj <- roc(teacher_te$assign_pro_bi, predicted_te$Never, levels=c("AnyUse","Never"), direction="<")
+# auc(roc_obj)
+# plot(roc_obj)
+
+# This chunk can directly visualize specificity and sensitivity
 ```
+
+
+```{r}
+require(cutpointr)
+
+teacher_te$prob_never <- predicted_te$Never
+
+cut.obj_mod <- cutpointr(data = teacher_te,
+                     x = prob_never,
+                     class = assign_pro_bi,
+                     pos_class = "Never",
+                     method = maximize_metric,
+                     metric = youden)
+cut.obj_mod
+
+auc_mod <- cut.obj_mod$AUC
+
+
+```
+
+```{r}
+pred_class <- ifelse(predicted_te$AnyUse>.5,1,0)
+
+confusion_mod <- table(teacher_te$assign_pro_bi,pred_class)
+
+confusion_mod
+```
+
+**Building a Classification Model with Ridge Penalty**
+
+```{r}
+grid_ridge <- data.frame(alpha = 0, lambda = c(seq(0,.001,.00001),.005,.01,.05,.1)) # bench mark values
+grid_ridge
+
+```
+
+1.4 Train the logistic regression model
+
+```{r}
+Sys.time()
+
+caret_logistic_ridge <- train(blueprint,
+                              data      = teacher_tr,
+                              method    = "glmnet",
+                              family    = "binomial",
+                              metric    = "logLoss",
+                              trControl = cv,
+                              tuneGrid = grid_ridge)
+
+Sys.time()
+
+```
+
 
