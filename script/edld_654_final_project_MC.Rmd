@@ -94,7 +94,7 @@ teacher_clean <- teacher_clean %>%
   mutate(
     assign_pro_bi = ifelse(IT3G17J == 1,1,0)
   ) %>% 
-  select(-IT3G17J,-IT3G17J_f,-IDCNTRY,-CNTRY, -IEADATE)
+  select(-IT3G17J,-IT3G17J_f,-IDCNTRY,-CNTRY, -IEADATE,-IDLANG_TCQ)
 ```
 
 ```{r}
@@ -143,15 +143,19 @@ head(arrange(missing_, desc(missing_percent)))
 Group variables into different types
 
 ```{r}
-teacher_clean$assign_pro_bi <- factor(teacher_clean$assign_pro_bi) 
-teacher_clean <- teacher_clean %>% 
-  mutate(across(all_of(categorical_vars), as.factor))
 
 outcome <- c('assign_pro_bi')
 
 id      <- c("IDTEACH")
 
-catergorical <- setdiff(categorical_vars, outcome)
+categorical <- setdiff(categorical_vars, outcome)
+
+teacher_clean <- teacher_clean %>% 
+  mutate(across(all_of(categorical), as.factor))
+
+teacher_clean$assign_pro_bi <- factor(teacher_clean$assign_pro_bi,
+                                      levels = c(0,1),
+                                      labels = c("AnyUse","Never")) 
 
 continuous <- setdiff(continuous_vars,id)
 
@@ -165,13 +169,13 @@ Build blueprint recipes to prepare data: I implemented the following steps:
 
 -   Mean imputation for: all_of(continuous)
 
--   Mode imputation for: all_of(catergorical)
+-   Mode imputation for: all_of(categorical)
 
 -   Polynomial expansion on: all_of(numeric)
 
 -   Centering and scaling for: paste0(continuous, "\_poly_1") paste0(continuous, "\_poly_2")
 
--   Dummy variables from: all_of(catergorical)
+-   Dummy variables from: all_of(categorical)
 
 -   Factor variables from: assign_pro_bi
 
@@ -180,39 +184,39 @@ Build blueprint recipes to prepare data: I implemented the following steps:
 require(recipes)
 options(warn=-1)
 
-blueprint <- recipe(x     = teacher_clean,
-                    vars  = c(catergorical,continuous,outcome,id),
-                    roles = c(rep('predictor',204),'outome','ID')) %>% 
+blueprint <- recipe(assign_pro_bi ~ ., data =  teacher_clean) %>% 
+  #update_role(assign_pro_bi, new_role = "outcome") %>% 
+  update_role(IDTEACH, new_role = "ID") %>% 
   
-  # For all 204 predictors, create an indicator variable for missingness
+  # For all 203 predictors, create an indicator variable for missingness
   
-  step_indicate_na(all_of(categorical), all_of(continuous)) %>% 
+  step_indicate_na(all_predictors()) %>% 
   
   # Remove the variable with zero variance, this will also remove 
   # The missingness variables
   
-  step_zv(all_numeric()) %>% 
+  step_zv(all_predictors()) %>% 
   
   # impute the missing values using mean and mode
   
   step_impute_mean(all_of(continuous)) %>% 
-  step_impute_mode(all_of(catergorical)) %>% 
+  step_impute_mode(all_of(categorical)) %>% 
   
   # 2nd degree polynomial terms for continuous variables
   
-  step_poly(all_of(numeric),degree = 2) %>% 
+  step_poly(all_of(continuous),degree = 2) %>% 
   
   # Standardize the polynomial terms of continuous variables
   
-  step_normalize(paste0(continuous, '_poly_1'),
-                 paste0(continuous, '_poly_2')) %>% 
+  step_normalize(all_numeric_predictors()) %>% 
   
   # One-hot encoding for all categorical variables
   
-  step_dummy(all_of(catergorical), one_hot = TRUE) %>% 
-  step_num2factor(assign_pro_bi,
-                  transform = function(x)x + 1,
-                  levels = c("Any use","Never"))
+  step_dummy(all_nominal_predictors(), one_hot = TRUE)
+ 
+ #step_num2factor(assign_pro_bi,
+                  #transform = function(x)x + 1,
+                  #levels = c("Any use","Never"))
 
 blueprint
 ```
@@ -232,6 +236,9 @@ dim(teacher_tr)
 dim(teacher_te)
 ```
 
+1.3. Logistic Regression with No Regularization:
+
+
 ```{r}
 # Randomly shuffle the training dataset
 set.seed(11252025)
@@ -249,6 +256,25 @@ for (i in 1:10){
 ```
 
 ```{r}
+cv <- trainControl(
+  method    = "cv",
+  index     = my.indices,
+  classProbs = TRUE,
+  summaryFunction = mnLogLoss
+)
+```
 
+Train the logistic regression model
+
+```{r}
+
+caret_mod <- train(blueprint,
+                   data   = teacher_tr,
+                   method = "glm",
+                   family = "binomial",
+                   metric = "logLoss",
+                   trControl = cv)
+
+caret_mod
 ```
 
