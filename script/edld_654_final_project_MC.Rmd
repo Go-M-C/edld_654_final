@@ -104,6 +104,7 @@ ff_glimpse(teacher_clean)
 
 require(dplyr)
 
+# identify variables
 categorical_vars <- teacher_clean %>% 
   summarise(across(everything(), ~n_distinct(.x, na.rm = TRUE))) %>% 
   pivot_longer(everything(), names_to = "variable", values_to = "unique_n") %>% 
@@ -126,6 +127,7 @@ continuous_vars
 ```
 
 ```{r}
+# Convert all categorical variables to factors
 teacher_clean <- teacher_clean %>% 
   mutate(across(all_of(categorical_vars), as.factor))
 ```
@@ -228,5 +230,25 @@ teacher_te <- teacher_clean[-loc, ]
 
 dim(teacher_tr)
 dim(teacher_te)
+```
+
+```{r}
+# Randomly shuffle the training dataset
+set.seed(11252025)
+teacher_tr = teacher_tr[sample(nrow(teacher_tr)), ]
+
+# Create 10 folds with equal size
+folds = cut(seq(1,nrow(teacher_tr)), breaks = 10, labels = FALSE)
+
+# Create the list for each fold
+my.indices <- vector('list', 10)
+
+for (i in 1:10){
+  my.indices[[i]] <- which(folds != i)
+}
+```
+
+```{r}
+
 ```
 
