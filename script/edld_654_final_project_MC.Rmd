@@ -320,19 +320,17 @@ legend("topright", c("AnyUse","Never"), col = c("lightblue","orange"), lty=c(1,2
 ```{r}
 require(cutpointr)
 
-teacher_te$prob_never <- predicted_te$Never
+teacher_te$prob_anyuse <- predicted_te$AnyUse
 
 cut.obj <- cutpointr(data = teacher_te,
-                     x = prob_never,
+                     x = prob_anyuse,
                      class = assign_pro_bi,
-                     pos_class = "Never",
+                     pos_class = "AnyUse",
                      method = maximize_metric,
                      metric = youden)
 cut.obj
 
-auc <- cut.obj$AUC
-
-
+AUC <- cut.obj$AUC
 ```
 
 ```{r}
@@ -378,12 +376,12 @@ head(grid_ridge)
 Sys.time()
 
 caret_ridge <- train(blueprint,
-                              data      = teacher_tr,
-                              method    = "glmnet",
-                              family    = "binomial",
-                              metric    = "logLoss",
-                              trControl = cv,
-                              tuneGrid = grid_ridge)
+                     data      = teacher_tr,
+                     method    = "glmnet",
+                     family    = "binomial",
+                     metric    = "logLoss",
+                     trControl = cv,
+                     tuneGrid = grid_ridge)
 
 Sys.time()
 
@@ -412,17 +410,47 @@ head(predicted_ridge_te)
 # Check the separation of distribution for the 
 # predicted probabilities between the two classes
 
-plot(density(predicted_ridge_te[group_0,]$AnyUse, adjust = 1), xlab = '', main = "Logistic Model_ridge penalty")
+plot(density(predicted_ridge_te[group_0,]$Never, adjust = 1.5), xlab = '', main = "Logistic Model_ridge penalty")
+points(density(predicted_ridge_te[group_1,]$Never, adjust = 1.5),lty=2,type='l')
 
-points(density(predicted_ridge_te[group_1,]$AnyUse,
-               adjust = 1),lty=2,type='l')
-
-legend(x=0.8, y=2.75, c("AnyUse","Never"))
+legend(x=-0.2, y=1.5, c("AnyUse","Never"),lty=c(1,2), bty='n')
 ```
 
 ```{r}
-pred_ridge_class <- ifelse(predicted_ridge_te$Anyuse>.5,1,0)
+pred_ridge_class <- ifelse(predicted_ridge_te$AnyUse > .5,1,0)
 confusion_ridge <- table(teacher_te$assign_pro_bi, pred_ridge_class)
+confusion_ridge
 
+```
+
+```{r}
+cut.obj_ridge <- cutpointr(x = predicted_ridge_te$AnyUse,
+                           class = teacher_te$assign_pro_bi)
+AUC_ridge <- auc(cut.obj_ridge)
+```
+
+```{r}
+# True Negative Rate
+TNR_ridge <- confusion_ridge[1,1]/(confusion_ridge[1,1]+confusion_ridge[1,2])
+
+# False Positive Rate
+FPR_ridge <- confusion_ridge[1,2]/(confusion_ridge[1,1]+confusion_ridge[1,2])
+
+# True Positive Rate
+TPR_ridge <- confusion_ridge[2,2]/(confusion_ridge[2,1]+confusion_ridge[2,2])
+
+# Precision
+PRE_ridge <- confusion_ridge[2,2]/(confusion_ridge[1,2]+confusion_ridge[2,2])
+
+# overall acuracy
+ACC_ridge <- (confusion_ridge[2,2]+confusion_ridge[1,1])/(confusion_ridge[2,2]+confusion_ridge[1,1]+confusion_ridge[1,2]+confusion_ridge[2,1])
+```
+
+Using Classification with Ridge Penalty to explore the most important 10 variables correlates with our outcome variable
+
+```{r}
+require(vip)
+
+vip(caret_ridge, num_features = 10, geom = "point") + theme_bw()
 ```
 
