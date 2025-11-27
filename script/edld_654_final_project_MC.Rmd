@@ -525,6 +525,15 @@ ACC_lasso <- (confusion_lasso[2,2]+confusion_lasso[1,1])/(confusion_lasso[2,2]+c
 vip(caret_lasso, num_features = 10, geom = "point") + theme_bw()+labs(title = "Important predictors highlighted by Lasso Penalty Model")
 ```
 
+```{r}
+coefs_lasso <- coef(caret_lasso$finalModel,
+                    caret_lasso$bestTune$lambda)
+
+ind_lasso <- order(abs(coefs_lasso[,1]),decreasing=T)
+
+head(as.matrix(coefs_lasso[ind_lasso,]),10)
+```
+
 
 ## Report
 ```{r}
