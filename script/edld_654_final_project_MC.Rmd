@@ -16,6 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 The main objective of this task is to explore several supervised learning models for predicting the outcome of interest. The Dataset I used is the US teacher questionnaire survey data provided in the International Computer and Information Literacy Study(ICILS) 2023.
 
 Which teacher-level factors predict how frequently teachers have 8-th grade students write computer programs, games, or apps during classroom instruction?
+Whether teacher-level factors can predict how frequently teachers have 8-th grade students write computer programs, games, or apps during classroom instruction?
 
 The ICILS is designed to measure 8th-grade students' capabilities to use Computer Information Literacy(CIL) and Computational Thinking(CT). Along with 35 education systems, United States participated CIL assessment and CT assessment with 24 education systems. The study survey included context questionnaire for school principles & coordinators, teachers, and 8th-grade students. It is to my interest that, the study didn't include the U.S. teacher data in the international average or presented in the main ICILS 2023 international report because the response rate for sampled teachers in the United States was below 50 percent. The correlated factors could be varied. Thus, I plan to use this dataset to explore more about teachers' usage of ICT in the U.S.
 
@@ -26,6 +27,8 @@ The ICILS is designed to measure 8th-grade students' capabilities to use Compute
 -   **Data visualization (5pts)**: Include at least two plots (or more) to help communicate your findings. The plots may be of initial data explorations, fits of individual models, and plots displaying the performance of competing models.
 
 -   **Discussion/Conclusion (25pts)**: Discuss and summarize what you learned. Which variables were the most important in predicting your outcome? Was this expected or surprising? Were different models close in performance, or were there significant gaps in performance from different modeling approaches? Are there practical/applied findings that could help the field of your interest based on your work? If yes, what are they?
+
+Should I use multinomial regression?
 
 -   **Reproducibility (10pts)**: Provide a link to the GitHub repo at the beginning of your report as a note.
 
@@ -273,24 +276,24 @@ Train the logistic regression model
 
 ```{r}
 
-caret_mod <- train(blueprint,
+caret <- train(blueprint,
                    data   = teacher_tr,
                    method = "glm",
                    family = "binomial",
                    metric = "logLoss",
                    trControl = cv)
 
-caret_mod
+caret
 ```
 
 ```{r}
-LL_mod <- caret_mod$results$logLoss
+LL_mod <- caret$results$logLoss
 ```
 
 1.3.1 Logistic Regression Performance Evaluation
 
 ```{r}
-predicted_te <- predict(caret_mod, teacher_te, type = 'prob')
+predicted_te <- predict(caret, teacher_te, type = 'prob')
 dim(predicted_te)
 ```
 
@@ -313,56 +316,68 @@ legend("topright", c("AnyUse","Never"), col = c("lightblue","orange"), lty=c(1,2
 
 ```
 
-```{r}
-# library(pROC)
-# roc_obj <- roc(teacher_te$assign_pro_bi, predicted_te$Never, levels=c("AnyUse","Never"), direction="<")
-# auc(roc_obj)
-# plot(roc_obj)
-
-# This chunk can directly visualize specificity and sensitivity
-```
-
 
 ```{r}
 require(cutpointr)
 
 teacher_te$prob_never <- predicted_te$Never
 
-cut.obj_mod <- cutpointr(data = teacher_te,
+cut.obj <- cutpointr(data = teacher_te,
                      x = prob_never,
                      class = assign_pro_bi,
                      pos_class = "Never",
                      method = maximize_metric,
                      metric = youden)
-cut.obj_mod
+cut.obj
 
-auc_mod <- cut.obj_mod$AUC
+auc <- cut.obj$AUC
 
 
 ```
 
 ```{r}
+# Confusion matrix assuming the threshold is 0.5
+
 pred_class <- ifelse(predicted_te$AnyUse>.5,1,0)
 
-confusion_mod <- table(teacher_te$assign_pro_bi,pred_class)
+confusion <- table(teacher_te$assign_pro_bi,pred_class)
 
-confusion_mod
+confusion
 ```
+
+
+```{r}
+# True Negative Rate
+TNR <- confusion[1,1]/(confusion[1,1]+confusion[1,2])
+
+# False Positive Rate
+FPR <- confusion[1,2]/(confusion[1,1]+confusion[1,2])
+
+# True Positive Rate
+TPR <- confusion[2,2]/(confusion[2,1]+confusion[2,2])
+
+# Precision
+PRE <- confusion[2,2]/(confusion[1,2]+confusion[2,2])
+
+# overall acuracy
+ACC <- (confusion[2,2]+confusion[1,1])/(confusion[2,2]+confusion[1,1]+confusion[1,2]+confusion[2,1])
+```
+
 
 **Building a Classification Model with Ridge Penalty**
 
 ```{r}
 grid_ridge <- data.frame(alpha = 0, lambda = c(seq(0,.001,.00001),.005,.01,.05,.1)) # bench mark values
-grid_ridge
+head(grid_ridge)
 
 ```
 
-1.4 Train the logistic regression model
+1.4.1 Train the logistic regression model
 
 ```{r}
 Sys.time()
 
-caret_logistic_ridge <- train(blueprint,
+caret_ridge <- train(blueprint,
                               data      = teacher_tr,
                               method    = "glmnet",
                               family    = "binomial",
@@ -374,4 +389,40 @@ Sys.time()
 
 ```
 
+```{r}
+plot(caret_ridge)
+
+# Optimal lambda ridge penalty
+LL_ridge <- caret_ridge$bestTune$lambda
+LL_ridge
+
+```
+
+1.4.2 Logistic Regression Performance Evaluation
+
+```{r}
+# Performance Evaluation
+predicted_ridge_te <- predict(caret_ridge, teacher_te, type = 'prob')
+dim(predicted_ridge_te)
+head(predicted_ridge_te)
+
+```
+
+```{r, fig.width = 8, fig.height = 6}
+# Check the separation of distribution for the 
+# predicted probabilities between the two classes
+
+plot(density(predicted_ridge_te[group_0,]$AnyUse, adjust = 1), xlab = '', main = "Logistic Model_ridge penalty")
+
+points(density(predicted_ridge_te[group_1,]$AnyUse,
+               adjust = 1),lty=2,type='l')
+
+legend(x=0.8, y=2.75, c("AnyUse","Never"))
+```
+
+```{r}
+pred_ridge_class <- ifelse(predicted_ridge_te$Anyuse>.5,1,0)
+confusion_ridge <- table(teacher_te$assign_pro_bi, pred_ridge_class)
+
+```
 
