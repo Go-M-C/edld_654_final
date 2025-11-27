@@ -41,7 +41,7 @@ require(labelled)
 require(stringr)
 require(haven) #zap_labels function
 ```
-## 1.1 Initial Data Preparation
+## 1. Initial Data Preparation
 ```{r}
 load(here("data","BTGUSAI3.Rdata"))
 teacher <- BTGUSAI3
@@ -143,7 +143,7 @@ head(arrange(missing_, desc(missing_percent)))
 
 ```
 
-Group variables into different types
+### 1.1 Group variables into different types
 
 ```{r}
 
@@ -181,6 +181,8 @@ Build blueprint recipes to prepare data: I implemented the following steps:
 -   Dummy variables from: all_of(categorical)
 
 -   Factor variables from: assign_pro_bi
+
+### 1.2 Prepare a recipe
 
 ```{r}
 
@@ -224,9 +226,7 @@ blueprint <- recipe(assign_pro_bi ~ ., data =  teacher_clean) %>%
 blueprint
 ```
 
-**Building a Logistic Regression Model**
-
-1.2. Train/Test split
+### 1.3 Train/Test data split
 
 ```{r}
 require(caret)
@@ -243,7 +243,7 @@ dim(teacher_tr)
 dim(teacher_te)
 ```
 
-1.3. Logistic Regression with No Regularization:
+## 2. Building a Logistic Regression Model with No Regularization
 
 
 ```{r}
@@ -272,7 +272,7 @@ cv <- trainControl(
 )
 ```
 
-Train the logistic regression model
+### 2.1 Train the logistic regression model
 
 ```{r}
 
@@ -290,7 +290,7 @@ caret
 LL_mod <- caret$results$logLoss
 ```
 
-1.3.1 Logistic Regression Performance Evaluation
+### 2.2 Logistic Regression Performance Evaluation
 
 ```{r}
 predicted_te <- predict(caret, teacher_te, type = 'prob')
@@ -320,23 +320,24 @@ legend("topright", c("AnyUse","Never"), col = c("lightblue","orange"), lty=c(1,2
 ```{r}
 require(cutpointr)
 
-teacher_te$prob_anyuse <- predicted_te$AnyUse
+cut.obj <- cutpointr(x = predicted_te$Never,
+                     class = teacher_te$assign_pro_bi)
 
-cut.obj <- cutpointr(data = teacher_te,
-                     x = prob_anyuse,
-                     class = assign_pro_bi,
-                     pos_class = "AnyUse",
-                     method = maximize_metric,
-                     metric = youden)
+# cut.obj <- cutpointr(data = teacher_te,
+#                      x = prob_anyuse,
+#                      class = assign_pro_bi,
+#                      pos_class = "AnyUse",
+#                      method = maximize_metric,
+#                      metric = youden)
 cut.obj
 
-AUC <- cut.obj$AUC
+AUC <- auc(cut.obj)
 ```
 
 ```{r}
 # Confusion matrix assuming the threshold is 0.5
 
-pred_class <- ifelse(predicted_te$AnyUse>.5,1,0)
+pred_class <- ifelse(predicted_te$Never>.5,1,0)
 
 confusion <- table(teacher_te$assign_pro_bi,pred_class)
 
@@ -362,7 +363,7 @@ ACC <- (confusion[2,2]+confusion[1,1])/(confusion[2,2]+confusion[1,1]+confusion[
 ```
 
 
-**Building a Classification Model with Ridge Penalty**
+## 3. Building a Classification Model with Ridge Penalty
 
 ```{r}
 grid_ridge <- data.frame(alpha = 0, lambda = c(seq(0,.001,.00001),.005,.01,.05,.1)) # bench mark values
@@ -370,7 +371,7 @@ head(grid_ridge)
 
 ```
 
-1.4.1 Train the logistic regression model
+### 3.1 Train the logistic regression model
 
 ```{r}
 Sys.time()
@@ -392,11 +393,11 @@ plot(caret_ridge)
 
 # Optimal lambda ridge penalty
 LL_ridge <- caret_ridge$bestTune$lambda
-LL_ridge
+
 
 ```
 
-1.4.2 Logistic Regression Performance Evaluation
+### 3.2 Logistic Regression Performance Evaluation
 
 ```{r}
 # Performance Evaluation
@@ -416,17 +417,20 @@ points(density(predicted_ridge_te[group_1,]$Never, adjust = 1.5),lty=2,type='l')
 legend(x=-0.2, y=1.5, c("AnyUse","Never"),lty=c(1,2), bty='n')
 ```
 
-```{r}
-pred_ridge_class <- ifelse(predicted_ridge_te$AnyUse > .5,1,0)
-confusion_ridge <- table(teacher_te$assign_pro_bi, pred_ridge_class)
-confusion_ridge
 
+
+```{r}
+cut.obj_ridge <- cutpointr(x = predicted_ridge_te$Never,
+                           class = teacher_te$assign_pro_bi)
+
+AUC_ridge <- auc(cut.obj_ridge)
 ```
 
 ```{r}
-cut.obj_ridge <- cutpointr(x = predicted_ridge_te$AnyUse,
-                           class = teacher_te$assign_pro_bi)
-AUC_ridge <- auc(cut.obj_ridge)
+pred_ridge_class <- ifelse(predicted_ridge_te$Never>.5,1,0)
+confusion_ridge <- table(teacher_te$assign_pro_bi, pred_ridge_class)
+confusion_ridge
+
 ```
 
 ```{r}
@@ -452,5 +456,23 @@ Using Classification with Ridge Penalty to explore the most important 10 variabl
 require(vip)
 
 vip(caret_ridge, num_features = 10, geom = "point") + theme_bw()
+```
+
+
+
+
+## Report
+```{r}
+results <- data.frame(
+    Model    = c("Logistic Regression","Logistic Regression with Ridge Penalty"),
+    LL       = c(LL_mod,LL_ridge),
+    AUC      = c(AUC,AUC_ridge),
+    ACC      = c(ACC,ACC_ridge),
+    TPR      = c(TPR,TPR_ridge),
+    TNR      = c(TNR,TNR_ridge),
+    PRE      = c(PRE,PRE_ridge)
+)
+
+knitr::kable(results,digits = 3)
 ```
 
