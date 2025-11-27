@@ -323,12 +323,6 @@ require(cutpointr)
 cut.obj <- cutpointr(x = predicted_te$Never,
                      class = teacher_te$assign_pro_bi)
 
-# cut.obj <- cutpointr(data = teacher_te,
-#                      x = prob_anyuse,
-#                      class = assign_pro_bi,
-#                      pos_class = "AnyUse",
-#                      method = maximize_metric,
-#                      metric = youden)
 cut.obj
 
 AUC <- auc(cut.obj)
@@ -394,7 +388,6 @@ plot(caret_ridge)
 # Optimal lambda ridge penalty
 LL_ridge <- caret_ridge$bestTune$lambda
 
-
 ```
 
 ### 3.2 Logistic Regression Performance Evaluation
@@ -458,19 +451,91 @@ require(vip)
 vip(caret_ridge, num_features = 10, geom = "point") + theme_bw()
 ```
 
+## 4. Building a Classification Model with Lasso Penalty
 
+```{r}
+grid_lasso <- data.frame(alpha = 1, lambda = seq(0, .001,.00001))
+head(grid_lasso)
+```
+
+```{r}
+Sys.time()
+
+caret_lasso <- train(blueprint,
+                     data = teacher_tr,
+                     method = "glmnet",
+                     family = "binomial",
+                     metric = "logLoss",
+                     trControl = cv,
+                     tuneGrid = grid_lasso)
+
+Sys.time()
+```
+
+
+```{r}
+plot(caret_lasso)
+
+LL_lasso <- caret_lasso$bestTune$lambda
+```
+
+```{r}
+predicted_lasso_te <- predict(caret_lasso, teacher_te, type = "prob")
+dim(predicted_lasso_te)
+head(predicted_lasso_te)
+```
+
+```{r}
+plot(density(predicted_lasso_te[group_0,]$Never,adjust=1.5), xlab = '', main = 'Logistic Model_lasso penalty')
+points(density(predicted_lasso_te[group_1,]$Never,adjust=1.5),lty=2,type='l')
+legend(x=0.8,y=0.8, c("AnyUse","Never"), lty=c(1,2), bty='n')
+
+```
+
+```{r}
+cut.obj_lasso <- cutpointr(x = predicted_lasso_te$Never,
+                           class = teacher_te$assign_pro_bi)
+AUC_lasso <- auc(cut.obj_lasso)
+```
+
+```{r}
+pred_lasso_class <- ifelse(predicted_lasso_te$Never>.5,1,0)
+confusion_lasso <- table(teacher_te$assign_pro_bi,pred_lasso_class)
+confusion_lasso
+```
+
+```{r}
+# True Negative Rate
+TNR_lasso <- confusion_lasso [1,1]/(confusion_lasso[1,1]+confusion_lasso[1,2])
+
+# False Positive Rate
+FPR_lasso <- confusion_lasso[1,2]/(confusion_lasso[1,1]+confusion_lasso[1,2])
+
+# True Positive Rate
+TPR_lasso <- confusion_lasso[2,2]/(confusion_lasso[2,1]+confusion_lasso[2,2])
+
+# Precision
+PRE_lasso <- confusion_lasso[2,2]/(confusion_lasso[1,2]+confusion_lasso[2,2])
+
+# overall accuracy
+ACC_lasso <- (confusion_lasso[2,2]+confusion_lasso[1,1])/(confusion_lasso[2,2]+confusion_lasso[1,1]+confusion_lasso[1,2]+confusion_lasso[2,1])
+```
+
+```{r}
+vip(caret_lasso, num_features = 10, geom = "point") + theme_bw()+labs(title = "Important predictors highlighted by Lasso Penalty Model")
+```
 
 
 ## Report
 ```{r}
 results <- data.frame(
-    Model    = c("Logistic Regression","Logistic Regression with Ridge Penalty"),
-    LL       = c(LL_mod,LL_ridge),
-    AUC      = c(AUC,AUC_ridge),
-    ACC      = c(ACC,ACC_ridge),
-    TPR      = c(TPR,TPR_ridge),
-    TNR      = c(TNR,TNR_ridge),
-    PRE      = c(PRE,PRE_ridge)
+    Model    = c("Logistic Regression","Logistic Regression with Ridge Penalty","Logistic Regression with Lasso Penalty"),
+    LL       = c(LL_mod,LL_ridge,LL_lasso),
+    AUC      = c(AUC,AUC_ridge,AUC_lasso),
+    ACC      = c(ACC,ACC_ridge,ACC_lasso),
+    TPR      = c(TPR,TPR_ridge,TPR_lasso),
+    TNR      = c(TNR,TNR_ridge,TNR_lasso),
+    PRE      = c(PRE,PRE_ridge,PRE_lasso)
 )
 
 knitr::kable(results,digits = 3)
