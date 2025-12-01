@@ -95,7 +95,7 @@ ggplot(teacher_clean, aes(IT3G17J_f, fill = IT3G17J_f)) +
 ```{r}
 teacher_clean <- teacher_clean %>% 
   mutate(
-    assign_pro_bi = ifelse(IT3G17J == 1,1,0)
+    assign_pro_bi = ifelse(IT3G17J == 1,0,1)
   ) %>% 
   select(-IT3G17J,-IT3G17J_f,-IDCNTRY,-CNTRY, -IEADATE,-IDLANG_TCQ)
 ```
@@ -158,7 +158,7 @@ teacher_clean <- teacher_clean %>%
 
 teacher_clean$assign_pro_bi <- factor(teacher_clean$assign_pro_bi,
                                       levels = c(0,1),
-                                      labels = c("AnyUse","Never")) 
+                                      labels = c("Never","AnyUse")) 
 
 continuous <- setdiff(continuous_vars,id)
 
@@ -221,7 +221,7 @@ blueprint <- recipe(assign_pro_bi ~ ., data =  teacher_clean) %>%
  
  #step_num2factor(assign_pro_bi,
                   #transform = function(x)x + 1,
-                  #levels = c("Any use","Never"))
+                  #levels = c("Never","AnyUse"))
 
 blueprint
 ```
@@ -303,15 +303,15 @@ head(predicted_te)
 
 
 ```{r}
-group_0 <- which(teacher_te$assign_pro_bi=="AnyUse")
-group_1 <- which(teacher_te$assign_pro_bi=="Never")
+group_0 <- which(teacher_te$assign_pro_bi=="Never")
+group_1 <- which(teacher_te$assign_pro_bi=="AnyUse")
 
 prob_0 <- jitter(predicted_te$Never[group_0], amount=1e-4)
 prob_1 <- jitter(predicted_te$Never[group_1], amount=1e-4)
 
 plot(density(prob_0, adjust=2), col = "lightblue", xlab='Model Prediction', main = "")
 lines(density(prob_1, adjust=2),col = "orange",lty=2)
-legend("topright", c("AnyUse","Never"), col = c("lightblue","orange"), lty=c(1,2), bty='n')
+legend("topright", c("Never","AnyUse"), col = c("lightblue","orange"), lty=c(1,2), bty='n')
 
 
 ```
@@ -320,7 +320,7 @@ legend("topright", c("AnyUse","Never"), col = c("lightblue","orange"), lty=c(1,2
 ```{r}
 require(cutpointr)
 
-cut.obj <- cutpointr(x = predicted_te$Never,
+cut.obj <- cutpointr(x = predicted_te$AnyUse,
                      class = teacher_te$assign_pro_bi)
 
 cut.obj
@@ -331,7 +331,7 @@ AUC <- auc(cut.obj)
 ```{r}
 # Confusion matrix assuming the threshold is 0.5
 
-pred_class <- ifelse(predicted_te$Never>.5,1,0)
+pred_class <- ifelse(predicted_te$AnyUse>.5,1,0)
 
 confusion <- table(teacher_te$assign_pro_bi,pred_class)
 
@@ -405,7 +405,7 @@ head(predicted_ridge_te)
 # predicted probabilities between the two classes
 
 plot(density(predicted_ridge_te[group_0,]$AnyUse, adjust = 1.5),col = "lightblue",xlab = 'Model Prediction', main = "Logistic Model_ridge penalty")
-points(density(predicted_ridge_te[group_1,]$Never, adjust = 1.5),col = "orange",lty=2,type='l')
+points(density(predicted_ridge_te[group_1,]$AnyUse, adjust = 1.5),col = "orange",lty=2,type='l')
 
 legend("topright", c("AnyUse","Never"),col = c("lightblue","orange"),lty=c(1,2), bty='n')
 ```
@@ -413,14 +413,14 @@ legend("topright", c("AnyUse","Never"),col = c("lightblue","orange"),lty=c(1,2),
 
 
 ```{r}
-cut.obj_ridge <- cutpointr(x = predicted_ridge_te$Never,
+cut.obj_ridge <- cutpointr(x = predicted_ridge_te$AnyUse,
                            class = teacher_te$assign_pro_bi)
 
 AUC_ridge <- auc(cut.obj_ridge)
 ```
 
 ```{r}
-pred_ridge_class <- ifelse(predicted_ridge_te$Never>.5,1,0)
+pred_ridge_class <- ifelse(predicted_ridge_te$AnyUse>.5,1,0)
 confusion_ridge <- table(teacher_te$assign_pro_bi, pred_ridge_class)
 confusion_ridge
 
@@ -487,13 +487,13 @@ head(predicted_lasso_te)
 
 ```{r}
 plot(density(predicted_lasso_te[group_0,]$AnyUse,adjust=1.5), col="lightblue",xlab = '', main = 'Logistic Model_lasso penalty')
-points(density(predicted_lasso_te[group_1,]$Never,adjust=1.5),col="orange",lty=2,type='l')
+points(density(predicted_lasso_te[group_1,]$AnyUse,adjust=1.5),col="orange",lty=2,type='l')
 legend("topright", c("AnyUse","Never"), col = c("lightblue","orange"), lty=c(1,2), bty='n')
 
 ```
 
 ```{r}
-cut.obj_lasso <- cutpointr(x = predicted_lasso_te$Never,
+cut.obj_lasso <- cutpointr(x = predicted_lasso_te$AnyUse,
                            class = teacher_te$assign_pro_bi)
 AUC_lasso <- auc(cut.obj_lasso)
 ```
