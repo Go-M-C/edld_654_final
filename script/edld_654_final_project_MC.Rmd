@@ -138,7 +138,7 @@ teacher_clean <- teacher_clean %>%
 Missing summary table
 
 ```{r}
-missing_ <- ff_glimpse(teacher_clean)$Continuous
+missing_ <- ff_glimpse(teacher_clean)$Categorical
 head(arrange(missing_, desc(missing_percent)))
 
 ```
@@ -404,10 +404,10 @@ head(predicted_ridge_te)
 # Check the separation of distribution for the 
 # predicted probabilities between the two classes
 
-plot(density(predicted_ridge_te[group_0,]$Never, adjust = 1.5), xlab = '', main = "Logistic Model_ridge penalty")
-points(density(predicted_ridge_te[group_1,]$Never, adjust = 1.5),lty=2,type='l')
+plot(density(predicted_ridge_te[group_0,]$Never, adjust = 1.5),col = "lightblue",xlab = '', main = "Logistic Model_ridge penalty")
+points(density(predicted_ridge_te[group_1,]$Never, adjust = 1.5),col = "orange",lty=2,type='l')
 
-legend(x=-0.2, y=1.5, c("AnyUse","Never"),lty=c(1,2), bty='n')
+legend("topright", c("AnyUse","Never"),col = c("lightblue","orange"),lty=c(1,2), bty='n')
 ```
 
 
@@ -486,9 +486,9 @@ head(predicted_lasso_te)
 ```
 
 ```{r}
-plot(density(predicted_lasso_te[group_0,]$Never,adjust=1.5), xlab = '', main = 'Logistic Model_lasso penalty')
-points(density(predicted_lasso_te[group_1,]$Never,adjust=1.5),lty=2,type='l')
-legend(x=0.8,y=0.8, c("AnyUse","Never"), lty=c(1,2), bty='n')
+plot(density(predicted_lasso_te[group_0,]$Never,adjust=1.5), col="lightblue",xlab = '', main = 'Logistic Model_lasso penalty')
+points(density(predicted_lasso_te[group_1,]$Never,adjust=1.5),col="orange",lty=2,type='l')
+legend("topright", c("AnyUse","Never"), col = c("lightblue","orange"), lty=c(1,2), bty='n')
 
 ```
 
