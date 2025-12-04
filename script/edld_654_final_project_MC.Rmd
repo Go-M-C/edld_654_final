@@ -32,7 +32,7 @@ Should I use multinomial regression?
 
 -   **Reproducibility (10pts)**: Provide a link to the GitHub repo at the beginning of your report as a note.
 
-```{r}
+```{r, include=FALSE}
 require(here)
 require(tidyverse)
 require(recipes)
@@ -45,14 +45,14 @@ require(haven) #zap_labels function
 ```{r}
 load(here("data","BTGUSAI3.Rdata"))
 teacher <- BTGUSAI3
-names(teacher)
+
 ```
 
 ```{r}
 vars_to_remove <-grep(
   pattern = "^(TRWGT|WGT|JKZONET|JKREPT|SENWGTT|VERSION|HOUWGTT|TOTWGTT|T_)",
                        names(teacher), value = TRUE)
-vars_to_remove
+
 teacher_clean <- teacher[, !names(teacher) %in% vars_to_remove]
 ```
 
@@ -115,7 +115,6 @@ categorical_vars <- teacher_clean %>%
            sapply(teacher_clean, is.character)[match(variable, names(teacher_clean))]) %>% 
   pull(variable)
 
-categorical_vars
 
 
 # Move IDSCHOOL to categorical_var
@@ -125,7 +124,7 @@ categorical_vars <- c(categorical_vars, "IDSCHOOL") %>%
 
 continuous_vars <- setdiff(names(teacher_clean), categorical_vars)
 
-continuous_vars
+
 
 ```
 
@@ -179,8 +178,6 @@ Build blueprint recipes to prepare data: I implemented the following steps:
 -   Centering and scaling for: paste0(continuous, "\_poly_1") paste0(continuous, "\_poly_2")
 
 -   Dummy variables from: all_of(categorical)
-
--   Factor variables from: assign_pro_bi
 
 ### 1.2 Prepare a recipe
 
